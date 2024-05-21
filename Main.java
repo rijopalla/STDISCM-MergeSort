@@ -2,6 +2,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Random;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class Main {
     public static void main(String[] args) {
@@ -22,10 +24,10 @@ public class Main {
         int threadLimit = threadScanner.nextInt();
         threadScanner.nextLine();
 
-
         // TODO: Generate a random array of given size
         int[] randArray = new int[arraySize];
 
+        System.out.println("Before shuffle: ");
         for (int i = 0; i < arraySize; i++) {
             randArray[i] = random.nextInt(arraySize);
             System.out.print(randArray[i] + " ");
@@ -33,7 +35,7 @@ public class Main {
 
         //Shuffle the array
         shuffleArray(randArray, random);
-        System.out.println("After shuffle: \n");
+        System.out.println("\nAfter shuffle: ");
         for (int i = 0; i < arraySize; i++) {
             System.out.print(randArray[i] + " ");
         }
@@ -44,9 +46,13 @@ public class Main {
 
         // TODO: Call merge on each interval in sequence
         long startTime = System.nanoTime();
+
+        Executor executor = Executors.newFixedThreadPool(threadLimit); //Create fixed thread pool
+
         for (Interval interval:intList) {
-            merge(randArray, interval.getStart(), interval.getEnd());
+            executor.execute(new MergeTask(randArray, interval.getStart(), interval.getEnd()));
         }
+        
         long endTime = System.nanoTime();
         double elapsedTime = (endTime-startTime)/1_000_000_000.0;
 
@@ -78,6 +84,23 @@ public class Main {
             array[index] = array[i];
             array[i] = temp;
 
+        }
+    }
+
+    public static class MergeTask implements Runnable {
+        private int[] array;
+        private int start;
+        private int end;
+
+        public MergeTask(int[] array, int start, int end) {
+            this.array = array;
+            this.start = start;
+            this.end = end;
+        }
+
+        @Override 
+        public void run(){
+            merge(array, start, end);
         }
     }
 
