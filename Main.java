@@ -2,8 +2,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Random;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 
 public class Main {
     public static void main(String[] args) {
@@ -12,33 +12,27 @@ public class Main {
         Random random = new Random(RAND_SEED);
 
         // TODO: Get array size and thread count from user
-        Scanner arrayScanner = new Scanner(System.in);
-        Scanner threadScanner =new Scanner(System.in);
+        Scanner scanner = new Scanner(System.in);
 
         System.out.println("Enter array size: ");
-        int arraySize = arrayScanner.nextInt();
-        arrayScanner.nextLine();
+        int arraySize = scanner.nextInt();
+        scanner.nextLine();
 
 
         System.out.println("Enter thread count: ");
-        int threadLimit = threadScanner.nextInt();
-        threadScanner.nextLine();
+        int threadLimit = scanner.nextInt();
+        scanner.nextLine();
 
         // TODO: Generate a random array of given size
         int[] randArray = new int[arraySize];
 
-        System.out.println("Before shuffle: ");
         for (int i = 0; i < arraySize; i++) {
             randArray[i] = random.nextInt(arraySize);
-            System.out.print(randArray[i] + " ");
         }
 
         //Shuffle the array
         shuffleArray(randArray, random);
-        System.out.println("\nAfter shuffle: ");
-        for (int i = 0; i < arraySize; i++) {
-            System.out.print(randArray[i] + " ");
-        }
+
 
         // TODO: Call the generate_intervals method to generate the merge 
         // sequence
@@ -47,25 +41,21 @@ public class Main {
         // TODO: Call merge on each interval in sequence
         long startTime = System.nanoTime();
 
-        Executor executor = Executors.newFixedThreadPool(threadLimit); //Create fixed thread pool
+        ExecutorService executor = Executors.newFixedThreadPool(threadLimit); //Create fixed thread pool
 
         for (Interval interval:intList) {
             executor.execute(new MergeTask(randArray, interval.getStart(), interval.getEnd()));
         }
+
+        //Shutdown the executor
+        executor.shutdown();
         
         long endTime = System.nanoTime();
         double elapsedTime = (endTime-startTime)/1_000_000_000.0;
 
-        //Print array (for checking)
-        System.out.println("\nSorted: ");
-        for (int num: randArray){
-            System.out.print(num+" ");
-        }
-
         System.out.printf("\n Execution time: %.6f seconds%n", elapsedTime);
         
-        arrayScanner.close();
-        threadScanner.close();
+        scanner.close();
 
         // Once you get the single-threaded version to work, it's time to 
         // implement the concurrent version. Good luck :)
