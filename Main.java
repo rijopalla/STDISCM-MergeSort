@@ -46,7 +46,6 @@ public class Main {
        
 
         ExecutorService executor = Executors.newFixedThreadPool(threadLimit); //Create fixed thread pool
-        // CountDownLatch latch = new CountDownLatch(intList.size()); //Create latch
 
         //Map each interval to its own countdown latch
         Map<Interval, CountDownLatch> latchMap = new HashMap<>();
