@@ -4,6 +4,10 @@ import java.util.Scanner;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.CountDownLatch;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Objects;
 
 public class Main {
     public static void main(String[] args) {
@@ -39,14 +43,55 @@ public class Main {
         List<Interval> intList = generate_intervals(0, arraySize - 1);
 
         // TODO: Call merge on each interval in sequence
-        long startTime = System.nanoTime();
+       
 
         ExecutorService executor = Executors.newFixedThreadPool(threadLimit); //Create fixed thread pool
+        // CountDownLatch latch = new CountDownLatch(intList.size()); //Create latch
 
-        for (Interval interval:intList) {
-            executor.execute(new MergeTask(randArray, interval.getStart(), interval.getEnd()));
+        //Map each interval to its own countdown latch
+        Map<Interval, CountDownLatch> latchMap = new HashMap<>();
+        for (Interval interval : intList) {
+            latchMap.put(interval, new CountDownLatch(1));
+            int mid = interval.getStart() + (interval.getEnd() - interval.getStart()) / 2;
+            Interval left = new Interval(interval.getStart(), mid);
+            Interval right = new Interval(mid + 1, interval.getEnd());
+            latchMap.putIfAbsent(left, new CountDownLatch(1)); // Ensure left interval has a latch
+            latchMap.putIfAbsent(right, new CountDownLatch(1)); // Ensure right interval has a latch
         }
 
+        long startTime = System.nanoTime();
+        for (Interval interval : intList) {
+            executor.execute(() -> {
+                try {
+                    int start = interval.getStart();
+                    int end = interval.getEnd();
+                    if (start < end) {
+                        int mid = start + (end - start) / 2;
+                        Interval left = new Interval(start, mid);
+                        Interval right = new Interval(mid + 1, end);
+        
+                        // Check for null before awaiting
+                        CountDownLatch leftLatch = latchMap.get(left);
+                        CountDownLatch rightLatch = latchMap.get(right);
+                        if (leftLatch!= null) leftLatch.await();
+                        if (rightLatch!= null) rightLatch.await();
+                    }
+                    merge(randArray, start, end);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    System.err.println("Interrupted");
+                } finally {
+                    latchMap.get(interval).countDown();
+                }
+            });
+        }
+
+        try {
+            latchMap.get(new Interval(0, arraySize - 1)).await(); // Wait for the entire array to be sorted
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("Interrupted");
+        }
         //Shutdown the executor
         executor.shutdown();
         
@@ -54,8 +99,24 @@ public class Main {
         double elapsedTime = (endTime-startTime)/1_000_000_000.0;
 
         System.out.printf("\n Execution time: %.6f seconds%n", elapsedTime);
+
+        //Sanity check
+        boolean isSorted = true;
+        for (int i = 0; i < arraySize - 1; i++) {
+            if (randArray[i] > randArray[i+1]) {
+                isSorted = false;
+                break;
+            }
+        }
+
+        if (isSorted) {
+            System.out.println("The array is correctly sorted");
+        } else {
+            System.out.println("The array is not correctly sorted");
+        }
         
         scanner.close();
+        
 
         // Once you get the single-threaded version to work, it's time to 
         // implement the concurrent version. Good luck :)
@@ -199,5 +260,18 @@ class Interval {
 
     public void setEnd(int end) {
         this.end = end;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Interval)) return false;
+        Interval that = (Interval) o;
+        return start == that.start && end == that.end;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(start, end);
     }
 }

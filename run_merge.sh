@@ -12,7 +12,7 @@ OUTPUT_FILE="elapsed_times.txt"
 
 # Clear the output file and write the header
 echo "Array Size: $ARRAY_SIZE" > $OUTPUT_FILE
-echo "Thread Count,Run Number,Elapsed Time (seconds)" >> $OUTPUT_FILE
+echo "Thread Count,Run Number,Elapsed Time (seconds),Is Sorted" >> $OUTPUT_FILE
 
 # Run the Java program with different thread counts
 for THREAD_COUNT in "${THREAD_COUNTS[@]}"
@@ -28,15 +28,19 @@ $THREAD_COUNT")
         # Extract the elapsed time from the output
         ELAPSED_TIME=$(echo "$OUTPUT" | grep 'Execution time' | awk '{print $3}')
 
-        # Print the output and the elapsed time
+        # Extract the sanity check result from the output
+        IS_SORTED=$(echo "$OUTPUT" | grep 'The array is')
+
+        # Print the output, the elapsed time, and the sanity check result
         echo "$OUTPUT"
         echo "Elapsed time: $ELAPSED_TIME seconds"
+        echo "Sanity check: $IS_SORTED"
 
-        # Save the thread count, run number, and elapsed time to the output file
-        echo "$THREAD_COUNT,$RUN,$ELAPSED_TIME" >> $OUTPUT_FILE
+        # Save the thread count, run number, elapsed time, and sanity check result to the output file
+        echo "$THREAD_COUNT,$RUN,$ELAPSED_TIME,$IS_SORTED" >> $OUTPUT_FILE
 
         echo "------------------------------------------"
     done
 done
 
-echo "Elapsed times saved to $OUTPUT_FILE"
+echo "Elapsed times and sanity check results saved to $OUTPUT_FILE"
